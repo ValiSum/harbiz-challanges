@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest Calendar.test.js",
+    "test:watch": "jest --watch Calendar.test.js",
     "lint": "eslint ."
   },
   "author": "Amine <amine@harbiz.io>",
