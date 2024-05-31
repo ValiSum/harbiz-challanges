@@ -15,6 +15,14 @@ describe('getAvailableSpot', function () {
       result[0].endHour.valueOf(),
       moment.utc('2023-04-10T16:50:00.000Z').valueOf()
     )
+    assert.equal(
+      result[0].clientStartHour.valueOf(),
+      moment.utc('2023-04-10T16:10:00.000Z').valueOf()
+    )
+    assert.equal(
+      result[0].clientEndHour.valueOf(),
+      moment.utc('2023-04-10T16:40:00.000Z').valueOf()
+    )
   })
 })
 
@@ -29,6 +37,14 @@ describe('getAvailableSpot', function () {
     )
     assert.equal(
       result[0].endHour.valueOf(),
+      moment.utc('2023-04-13T18:25:00.000Z').valueOf()
+    )
+    assert.equal(
+      result[0].clientStartHour.valueOf(),
+      moment.utc('2023-04-13T18:00:00.000Z').valueOf()
+    )
+    assert.equal(
+      result[0].clientEndHour.valueOf(),
       moment.utc('2023-04-13T18:25:00.000Z').valueOf()
     )
   })

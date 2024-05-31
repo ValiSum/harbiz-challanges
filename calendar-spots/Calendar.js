@@ -60,7 +60,6 @@ function getAvailableSpots (calendar, date, duration) {
   // Create the mini slots for the available spots based on the duration of the session and the duration before and after the session
   const arrSlot = []
   realSpots.forEach(function (slot) {
-    let init = 0
     let startHour
     let endHour
     let clientStartHour
@@ -89,7 +88,7 @@ function getAvailableSpots (calendar, date, duration) {
         durationBefore + duration + durationAfter
       )
       clientStartHour = addMinutes(startHourFirst, durationBefore)
-      clientEndHour = addMinutes(startHourFirst, duration)
+      clientEndHour = addMinutes(startHourFirst, durationBefore + duration)
 
       // Check if the end of the slot is reached (if the end of the mini slot is greater than the end of the slot)
       if (
@@ -104,8 +103,6 @@ function getAvailableSpots (calendar, date, duration) {
         clientStartHour: moment.utc(dateISO + ' ' + clientStartHour).toDate(),
         clientEndHour: moment.utc(dateISO + ' ' + clientEndHour).toDate()
       }
-      console.log('objSlot', objSlot)
-      init += 1
       return objSlot
     }
 
