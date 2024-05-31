@@ -24,7 +24,7 @@ class Calendar {
     // Get the slots for the day
     const daySlots = this.data.slots[date] || []
     // Filter the slots and get only the available spots (without conflicts with reserved sessions)
-    const realSpots = this.filterFreeSpots(daySlots, date, dateISO)
+    const realSpots = this.filterRealSpots(daySlots, date, dateISO)
 
     // Create the mini slots for the available spots based on the duration of the session and the duration before and after the session
     const arrSlot = []
@@ -47,7 +47,7 @@ class Calendar {
   }
 
   // Method to filter the slots and get only the available spots (without conflicts with reserved sessions)
-  filterFreeSpots (daySlots, date, dateISO) {
+  filterRealSpots (daySlots, date, dateISO) {
     const realSpots = []
     daySlots.forEach(daySlot => {
       // Check if the slot has a session and if it has conflicts with the session
