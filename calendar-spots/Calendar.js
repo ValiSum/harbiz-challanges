@@ -4,35 +4,56 @@ const fs = require('fs')
 class Calendar {
   constructor (calendarId) {
     this.calendarId = calendarId
+    this.data = this.getCalendarData()
+  }
+
+  // Method to read and parse the calendar file (convert it to a object)
+  getCalendarData () {
+    const rawData = fs.readFileSync('./calendars/calendar.' + this.calendarId + '.json')
+    const data = JSON.parse(rawData)
+    return data
   }
 
   getAvailableSpots (date, duration) {
-    // Read and parse the calendar file (convert it to a object)
-    const rawData = fs.readFileSync('./calendars/calendar.' + this.calendarId + '.json')
-    const data = JSON.parse(rawData)
-
     // Get the date in ISO format
     const dateISO = moment(date, 'DD-MM-YYYY').format('YYYY-MM-DD')
 
     // Get the duration before and after the session
-    const durationBefore = data.durationBefore
-    const durationAfter = data.durationAfter
-
+    const durationBefore = this.data.durationBefore
+    const durationAfter = this.data.durationAfter
     // Get the slots for the day
-    let daySlots = []
-    for (const key in data.slots) {
-      if (key === date) {
-        daySlots = data.slots[key]
-      }
-    }
-
+    const daySlots = this.data.slots[date] || []
     // Filter the slots and get only the available spots (without conflicts with reserved sessions)
+    const realSpots = this.filterFreeSpots(daySlots, date, dateISO)
+
+    // Create the mini slots for the available spots based on the duration of the session and the duration before and after the session
+    const arrSlot = []
+    realSpots.forEach(slot => {
+      let start = slot.start
+      let resultSlot
+
+      // Create the mini slots for the available spots until the end of the slot is reached
+      do {
+        resultSlot = this.getOneMiniSlot(start, slot.end, dateISO, durationBefore, duration, durationAfter)
+        if (resultSlot) {
+          arrSlot.push(resultSlot)
+          start = moment.utc(resultSlot.endHour).format('HH:mm')
+        }
+      } while (resultSlot)
+    })
+
+    // Return the available spots
+    return arrSlot
+  }
+
+  // Method to filter the slots and get only the available spots (without conflicts with reserved sessions)
+  filterFreeSpots (daySlots, date, dateISO) {
     const realSpots = []
     daySlots.forEach(daySlot => {
       // Check if the slot has a session and if it has conflicts with the session
-      if (data.sessions && data.sessions[date]) {
+      if (this.data.sessions && this.data.sessions[date]) {
         let noConflicts = true
-        data.sessions[date].forEach(sessionSlot => {
+        this.data.sessions[date].forEach(sessionSlot => {
           const sessionStart = moment(dateISO + ' ' + sessionSlot.start).valueOf()
           const sessionEnd = moment(dateISO + ' ' + sessionSlot.end).valueOf()
           const start = moment(dateISO + ' ' + daySlot.start).valueOf()
@@ -62,72 +83,49 @@ class Calendar {
       }
     })
 
-    // Create the mini slots for the available spots based on the duration of the session and the duration before and after the session
-    const arrSlot = []
-    realSpots.forEach(function (slot) {
-      let startHour
-      let endHour
-      let clientStartHour
-      let clientEndHour
+    return realSpots
+  }
 
-      function getMomentHour (hour) {
-        const finalHourForAdd = moment(dateISO + ' ' + hour)
-        return finalHourForAdd
-      }
-      function addMinutes (hour, minutes) {
-        const result = moment(hour).add(minutes, 'minutes').format('HH:mm')
-        return result
-      }
-      function removeMinutes (hour, minutes) {
-        const result = moment(hour).subtract(minutes, 'minutes').format('HH:mm')
-        return result
-      }
+  // Method to get the mini slot based on the start and end of the slot and the duration of the session
+  getOneMiniSlot (startSlot, endSlot, dateISO, durationBefore, duration, durationAfter) {
+    const startHourFirst = this.getMomentHour(dateISO, startSlot)
 
-      // Function to get the mini slot based on the start and end of the slot and the duration of the session
-      function getOneMiniSlot (startSlot, endSlot) {
-        const startHourFirst = getMomentHour(startSlot)
+    const startHour = startHourFirst.format('HH:mm')
+    const endHour = this.addMinutes(
+      startHourFirst,
+      durationBefore + duration + durationAfter
+    )
+    const clientStartHour = this.addMinutes(startHourFirst, durationBefore)
+    const clientEndHour = this.addMinutes(startHourFirst, durationBefore + duration)
 
-        startHour = startHourFirst.format('HH:mm')
-        endHour = addMinutes(
-          startHourFirst,
-          durationBefore + duration + durationAfter
-        )
-        clientStartHour = addMinutes(startHourFirst, durationBefore)
-        clientEndHour = addMinutes(startHourFirst, durationBefore + duration)
+    // Check if the end of the slot is reached (if the end of the mini slot is greater than the end of the slot)
+    if (
+      moment.utc(endHour, 'HH:mm').valueOf() > moment.utc(endSlot, 'HH:mm').valueOf()
+    ) {
+      return null
+    }
+    const objSlot = {
+      startHour: moment.utc(dateISO + ' ' + startHour).toDate(),
+      endHour: moment.utc(dateISO + ' ' + endHour).toDate(),
+      clientStartHour: moment.utc(dateISO + ' ' + clientStartHour).toDate(),
+      clientEndHour: moment.utc(dateISO + ' ' + clientEndHour).toDate()
+    }
+    return objSlot
+  }
 
-        // Check if the end of the slot is reached (if the end of the mini slot is greater than the end of the slot)
-        if (
-          moment.utc(endHour, 'HH:mm').valueOf() >
-					moment.utc(endSlot, 'HH:mm').valueOf()
-        ) {
-          return null
-        }
-        const objSlot = {
-          startHour: moment.utc(dateISO + ' ' + startHour).toDate(),
-          endHour: moment.utc(dateISO + ' ' + endHour).toDate(),
-          clientStartHour: moment.utc(dateISO + ' ' + clientStartHour).toDate(),
-          clientEndHour: moment.utc(dateISO + ' ' + clientEndHour).toDate()
-        }
-        return objSlot
-      }
+  getMomentHour (dateISO, hour) {
+    const finalHourForAdd = moment(dateISO + ' ' + hour)
+    return finalHourForAdd
+  }
 
-      let start = slot.start
-      let resultSlot
+  addMinutes (hour, minutes) {
+    const result = moment(hour).add(minutes, 'minutes').format('HH:mm')
+    return result
+  }
 
-      // Create the mini slots for the available spots until the end of the slot is reached
-      do {
-        resultSlot = getOneMiniSlot(start, slot.end)
-        if (resultSlot) {
-          arrSlot.push(resultSlot)
-          start = moment.utc(resultSlot.endHour).format('HH:mm')
-        }
-      } while (resultSlot)
-
-      return arrSlot
-    })
-
-    // Return the available spots
-    return arrSlot
+  removeMinutes (hour, minutes) {
+    const result = moment(hour).subtract(minutes, 'minutes').format('HH:mm')
+    return result
   }
 }
 
