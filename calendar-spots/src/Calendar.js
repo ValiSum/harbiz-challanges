@@ -1,5 +1,6 @@
 const fs = require('fs')
 const TimeUtils = require('./TimeUtils')
+const Slot = require('./Slot')
 
 class Calendar {
   constructor (calendarId) {
@@ -26,24 +27,7 @@ class Calendar {
     // Filter the slots and get only the available spots (without conflicts with reserved sessions)
     const realSpots = this.filterRealSpots(daySlots, date, dateISO)
 
-    // Create the mini slots for the available spots based on the duration of the session and the duration before and after the session
-    const arrSlot = []
-    realSpots.forEach(slot => {
-      let start = slot.start
-      let resultSlot
-
-      // Create the mini slots for the available spots until the end of the slot is reached
-      do {
-        resultSlot = this.getOneMiniSlot(start, slot.end, dateISO, durationBefore, duration, durationAfter)
-        if (resultSlot) {
-          arrSlot.push(resultSlot)
-          start = TimeUtils.formatHourToUTC(resultSlot.endHour)
-        }
-      } while (resultSlot)
-    })
-
-    // Return the available spots
-    return arrSlot
+    return realSpots.map(slot => new Slot(slot, dateISO, durationBefore, duration, durationAfter).generateMiniSlots()).flat()
   }
 
   // Method to filter the slots and get only the available spots (without conflicts with reserved sessions)
@@ -84,27 +68,6 @@ class Calendar {
     })
 
     return realSpots
-  }
-
-  // Method to get the mini slot based on the start and end of the slot and the duration of the session
-  getOneMiniSlot (startSlot, endSlot, dateISO, durationBefore, duration, durationAfter) {
-    const startHourFirst = TimeUtils.getMoment(dateISO, startSlot)
-    const startHour = TimeUtils.getHourFromDateTime(dateISO, startSlot)
-    const endHour = TimeUtils.addMinutesToHour(startHour, durationBefore + duration + durationAfter)
-    const clientStartHour = TimeUtils.addMinutesToHour(startHourFirst, durationBefore)
-    const clientEndHour = TimeUtils.addMinutesToHour(startHourFirst, durationBefore + duration)
-
-    // Check if the end of the slot is reached (if the end of the mini slot is greater than the end of the slot)
-    if (TimeUtils.getUTCValueFromHour(endHour) > TimeUtils.getUTCValueFromHour(endSlot)) {
-      return null
-    }
-
-    return {
-      startHour: TimeUtils.convertToUTCDate(dateISO, startHour),
-      endHour: TimeUtils.convertToUTCDate(dateISO, endHour),
-      clientStartHour: TimeUtils.convertToUTCDate(dateISO, clientStartHour),
-      clientEndHour: TimeUtils.convertToUTCDate(dateISO, clientEndHour)
-    }
   }
 }
 
