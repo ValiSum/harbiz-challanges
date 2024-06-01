@@ -4,8 +4,8 @@
   "description": "Harbiz challenge (JavaScript): Refactoring - Calendar spots",
   "main": "index.js",
   "scripts": {
-    "test": "jest Calendar.test.js",
-    "test:watch": "jest --watch Calendar.test.js",
+    "test": "jest ./",
+    "test:watch": "jest --watch ./",
     "lint": "eslint ."
   },
   "author": "Amine <amine@harbiz.io>",
