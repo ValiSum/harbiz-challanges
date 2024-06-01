@@ -1,6 +1,6 @@
 const moment = require('moment')
 const assert = require('assert')
-const TimeUtils = require('./TimeUtils')
+const TimeUtils = require('../src/TimeUtils')
 
 describe('TimeUtils', function () {
   describe('getMoment', function () {
