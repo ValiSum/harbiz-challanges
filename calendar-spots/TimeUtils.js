@@ -78,6 +78,16 @@ class TimeUtils {
   static getValueFromDateTime (dateISO, hour) {
     return this.getMoment(dateISO, hour).valueOf()
   }
+
+  /**
+   * Obtain the hour from an ISO date and hour.
+   * @param {string} dateISO - Date in ISO format (YYYY-MM-DD).
+   * @param {string} hour - Hour in HH:mm format.
+   * @returns {string} Hour in HH:mm format.
+   */
+  static getHourFromDateTime (dateISO, hour) {
+    return this.getMoment(dateISO, hour).format('HH:mm')
+  }
 }
 
 module.exports = TimeUtils

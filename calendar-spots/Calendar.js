@@ -89,8 +89,7 @@ class Calendar {
   // Method to get the mini slot based on the start and end of the slot and the duration of the session
   getOneMiniSlot (startSlot, endSlot, dateISO, durationBefore, duration, durationAfter) {
     const startHourFirst = TimeUtils.getMoment(dateISO, startSlot)
-
-    const startHour = startHourFirst.format('HH:mm')
+    const startHour = TimeUtils.getHourFromDateTime(dateISO, startSlot)
     const endHour = TimeUtils.addMinutesToHour(startHour, durationBefore + duration + durationAfter)
     const clientStartHour = TimeUtils.addMinutesToHour(startHourFirst, durationBefore)
     const clientEndHour = TimeUtils.addMinutesToHour(startHourFirst, durationBefore + duration)

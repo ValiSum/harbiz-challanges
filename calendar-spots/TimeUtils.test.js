@@ -73,4 +73,11 @@ describe('TimeUtils', function () {
       assert.strictEqual(result, moment('2024-06-01 12:30').valueOf())
     })
   })
+
+  describe('getHourFromDateTime', function () {
+    it('should get the hour from an ISO date and hour', function () {
+      const result = TimeUtils.getHourFromDateTime('2024-06-01', '12:30')
+      assert.strictEqual(result, '12:30')
+    })
+  })
 })
