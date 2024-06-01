@@ -20,7 +20,12 @@ class Slot {
     let resultSlot
 
     do {
-      resultSlot = this.getOneMiniSlot(start)
+      try {
+        resultSlot = this.getOneMiniSlot(start)
+      } catch (error) {
+        console.error(`Error in getOneMiniSlot: ${error.message}`)
+        break
+      }
       if (resultSlot) {
         miniSlots.push(resultSlot)
         start = TimeUtils.formatHourToUTC(resultSlot.endHour)
