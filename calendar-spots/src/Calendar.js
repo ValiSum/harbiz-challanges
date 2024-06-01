@@ -8,66 +8,82 @@ class Calendar {
     this.data = this.getCalendarData()
   }
 
-  // Method to read and parse the calendar file (convert it to a object)
+  /**
+   * Method to get the calendar data from the JSON file.
+   * @returns {Object} Parsed calendar data.
+   */
   getCalendarData () {
     const rawData = fs.readFileSync('./calendars/calendar.' + this.calendarId + '.json')
     const data = JSON.parse(rawData)
     return data
   }
 
+  /**
+   * Method to get the available spots for a specific date and duration.
+   * @param {string} date - Date in DD-MM-YYYY format.
+   * @param {number} duration - Duration of the session in minutes.
+   * @returns {Array} Array of available spots.
+   */
   getAvailableSpots (date, duration) {
-    // Get the date in ISO format
     const dateISO = TimeUtils.convertToISODate(date)
-
-    // Get the duration before and after the session
-    const durationBefore = this.data.durationBefore
-    const durationAfter = this.data.durationAfter
-    // Get the slots for the day
-    const daySlots = this.data.slots[date] || []
-    // Filter the slots and get only the available spots (without conflicts with reserved sessions)
+    const { durationBefore, durationAfter, slots } = this.data
+    const daySlots = slots[date] || []
     const realSpots = this.filterRealSpots(daySlots, date, dateISO)
 
-    return realSpots.map(slot => new Slot(slot, dateISO, durationBefore, duration, durationAfter).generateMiniSlots()).flat()
+    return realSpots.flatMap(slot => new Slot(slot, dateISO, durationBefore, duration, durationAfter).miniSlots)
   }
 
-  // Method to filter the slots and get only the available spots (without conflicts with reserved sessions)
+  /**
+   * Get available day slots based on conflicts with sessions.
+   * @param {Object} daySlot - Day slot object with start and end times.
+   * @param {string} date - Date in DD-MM-YYYY format.
+   * @param {string} dateISO - Date in ISO format (YYYY-MM-DD).
+   * @returns {Array} Array of available day slots.
+   */
   filterRealSpots (daySlots, date, dateISO) {
-    const realSpots = []
-    daySlots.forEach(daySlot => {
-      // Check if the slot has a session and if it has conflicts with the session
-      if (this.data.sessions && this.data.sessions[date]) {
-        let noConflicts = true
-        this.data.sessions[date].forEach(sessionSlot => {
-          const sessionStart = TimeUtils.getValueFromDateTime(dateISO, sessionSlot.start)
-          const sessionEnd = TimeUtils.getValueFromDateTime(dateISO, sessionSlot.end)
-          const start = TimeUtils.getValueFromDateTime(dateISO, daySlot.start)
-          const end = TimeUtils.getValueFromDateTime(dateISO, daySlot.end)
-          if (sessionStart > start && sessionEnd < end) {
-            // If the session is in the middle of the slot, the slot is divided into two spots (before and after the session)
-            realSpots.push({ start: daySlot.start, end: sessionSlot.start })
-            realSpots.push({ start: sessionSlot.end, end: daySlot.end })
-            noConflicts = false
-          } else if (sessionStart === start && sessionEnd < end) {
-            // If the session starts at the beginning of the slot, the spot is added after the session ends (after the session)
-            realSpots.push({ start: sessionSlot.end, end: daySlot.end })
-            noConflicts = false
-          } else if (sessionStart > start && sessionEnd === end) {
-            // If the session ends at the end of the slot, the spot is added before the session starts (before the session)
-            realSpots.push({ start: daySlot.start, end: sessionSlot.start })
-            noConflicts = false
-          } else if (sessionStart === start && sessionEnd === end) {
-            noConflicts = false
-          }
-        })
-        if (noConflicts) {
-          realSpots.push(daySlot)
-        }
-      } else {
-        realSpots.push(daySlot)
+    return daySlots.flatMap(daySlot => this.getAvailableDaySlots(daySlot, date, dateISO))
+  }
+
+  /**
+   * Get available day slots based on conflicts with sessions.
+   * @param {Object} daySlot - Day slot object with start and end times.
+   * @param {string} date - Date in DD-MM-YYYY format.
+   * @param {string} dateISO - Date in ISO format (YYYY-MM-DD).
+   * @returns {Array} Array of available day slots.
+   */
+  getAvailableDaySlots (daySlot, date, dateISO) {
+    if (!this.data.sessions || !this.data.sessions[date]) {
+      return [daySlot]
+    }
+
+    const availableSlots = []
+    let hasConflicts = false
+
+    this.data.sessions[date].forEach(sessionSlot => {
+      const sessionStart = TimeUtils.getValueFromDateTime(dateISO, sessionSlot.start)
+      const sessionEnd = TimeUtils.getValueFromDateTime(dateISO, sessionSlot.end)
+      const start = TimeUtils.getValueFromDateTime(dateISO, daySlot.start)
+      const end = TimeUtils.getValueFromDateTime(dateISO, daySlot.end)
+      if (sessionStart > start && sessionEnd < end) {
+        availableSlots.push({ start: daySlot.start, end: sessionSlot.start })
+        availableSlots.push({ start: sessionSlot.end, end: daySlot.end })
+        hasConflicts = true
+      } else if (sessionStart === start && sessionEnd < end) {
+        availableSlots.push({ start: sessionSlot.end, end: daySlot.end })
+        hasConflicts = true
+      } else if (sessionStart > start && sessionEnd === end) {
+        availableSlots.push({ start: daySlot.start, end: sessionSlot.start })
+        hasConflicts = true
+      } else if (sessionStart === start && sessionEnd === end) {
+        hasConflicts = true
       }
     })
 
-    return realSpots
+    if (!hasConflicts) {
+      availableSlots.push(daySlot)
+    }
+
+    return availableSlots
   }
 }
 
